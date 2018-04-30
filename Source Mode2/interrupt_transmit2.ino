@@ -423,18 +423,19 @@ int AcceleroMMA7361::getTotalVector()
 
 
 AcceleroMMA7361 accelero;
-int changes=0;
+//int changes=0;
 volatile bool sampling =false;
 byte Stampedsamples[1210];
 int next,dum;
-int numb=48;
-long int starttime;
-int datainterrupt=3;
+//int numb=48;
+//long int starttime;
+int datainterrupt=3;   // input for start signal
 volatile bool datasend=false;
 void setup()
 { cbi(ADCSRA, ADPS2);
   sbi(ADCSRA, ADPS1);
   cbi(ADCSRA, ADPS0);
+  
   Serial.begin(230400);
   accelero.begin(13, 12, 11, 10, A0, A1, A2);
   accelero.setARefVoltage(5);                   //sets the AREF voltage to 3.3V
@@ -442,8 +443,8 @@ void setup()
   
   pinMode(datainterrupt, INPUT);
   
-  
-  accelero.calibrate();
+  Serial.println("ready");
+  //accelero.calibrate();
   Serial.flush();
   Serial.end();
   // initialize timer1 
@@ -451,39 +452,32 @@ void setup()
   TCCR1A = 0;
   TCCR1B = 0;
 
-  TCNT1 = 65536- 3200 ;         // no prescale , 2.5khz frequency
- TCCR1B |= (1 << CS10); //| (1 << CS10);
+  TCNT1 = 65536- 3200 ;         // no prescale , 5khz frequency
+ TCCR1B |= (1 << CS10);  
 // 1 prescaler 
-     // enable timer overflow interrupt
-              // enable all interrupts
-  
- // starttime=micros();
-  //interrupts(); 
+    
  
 
-while(digitalRead(datainterrupt)!=HIGH);
+while(digitalRead(datainterrupt)!=HIGH);  // wait till start pulse goes high for common start point for both the controllers
 
-attachInterrupt(digitalPinToInterrupt(datainterrupt), dataISR, CHANGE);
+attachInterrupt(digitalPinToInterrupt(datainterrupt), dataISR, CHANGE);  // enable external interrupt
 
-TIMSK1 |= (1 << TOIE1);
+TIMSK1 |= (1 << TOIE1);  //enable timer interrupt
 TCNT1 = 65536- 3200 ; 
-interrupts();
+interrupts();   // enable all interrupts
 }
 
 
 void dataISR(){
-sampling=true;
-TCNT1 = 65536- 3200 ;
-  
+sampling=true;            //start sampling if change detected
 }
 
 
 
-ISR(TIMER1_OVF_vect)        // interrupt service routine that wraps a user defined function supplied by attachInterrupt
+ISR(TIMER1_OVF_vect)       //interrupt service routine for sampling
 {//interrupts();
   TCNT1 = 65536-3200;  
-   
-  
+  //noInterrupts(); 
   analogRead(A0);   
   Stampedsamples[next] = analogRead(A0)>>2;
   //Stampedsamples[next]= numb;
@@ -493,22 +487,19 @@ ISR(TIMER1_OVF_vect)        // interrupt service routine that wraps a user defin
   analogRead(A2);  
   Stampedsamples[next+2]=  analogRead(A2)>>2  ;
   //Stampedsamples[next+2] = 48 + (numb-48+2)%9;
-  //numb=48 + (numb-48+3)%9; 
+ // numb=48 + (numb-48+3)%9; 
 
   next=next+3;
- if(next==1200){datasend=true;} 
+ if(next==1200){datasend=true;}   // send data if 1200 samples obtained
 }
 
   
 
 
-
-
-
 void loop()
 { 
  if(datasend){
-  TIMSK1 = 0;
+  TIMSK1 = 0;   //stop sampling
   delay(70);
   Serial.begin(230400);
   starttime=micros();
@@ -525,7 +516,7 @@ void loop()
  sampling=false;
  datasend=false;
  while(!sampling);
- TIMSK1 |= (1 << TOIE1);
+ TIMSK1 |= (1 << TOIE1);   //start sampling
  TCNT1=65536-3200;
  //while(1);
  
