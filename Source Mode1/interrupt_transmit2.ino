@@ -422,19 +422,18 @@ int AcceleroMMA7361::getTotalVector()
 
 
 
-AcceleroMMA7361 accelero;
-int changes=0;
-int c=0;
-byte Stampedsamples[1200];
-int next,dum;
-int numb=48;
-long int starttime,totaltime;
-int datainterrupt=3;
-volatile bool datasend=false;
+int changes=0;    //Number of changes in pulse recieved at datainterrupt pin
+//int c=0;    
+byte Stampedsamples[1200]; //buffer to store data
+volatile int next=0,dum;    
+//int numb=48;
+//long int starttime,totaltime; 
+int datainterrupt=3; // input for controlling data traffic
+volatile bool datasend=false; 
 bool rising=false;
 bool synced= false;
 void setup()
-{ cbi(ADCSRA, ADPS2);
+{cbi(ADCSRA, ADPS2);  // set adc prescale to 4
   sbi(ADCSRA, ADPS1);
   cbi(ADCSRA, ADPS0);
   Serial.begin(230400);
@@ -443,10 +442,9 @@ void setup()
   accelero.setSensitivity(HIGH);//sets the sensitivity to +/-6G
   
   pinMode(datainterrupt, INPUT);
-  
-  
 
   accelero.calibrate();
+  // send the id and offsetvalues  
   Serial.println('2');
   Serial.println("x: "); 
   Serial.write(byte((accelero._offSets[0]+2)>>2));
@@ -461,45 +459,40 @@ void setup()
   TCCR1A = 0;
   TCCR1B = 0;
 
-          // no prescale , 2.5khz frequency
+  TCNT1 = 65536- 6400 ;         // no prescale , 2.5khz frequency
  TCCR1B |= (1 << CS10); //| (1 << CS10);
 // 1 prescaler 
-     // enable timer overflow interrupt
-              // enable all interrupts
-  
- // starttime=micros();
-  //interrupts(); 
- 
+    
 
-while(digitalRead(datainterrupt)!=HIGH);
+while(digitalRead(datainterrupt)!=HIGH); // wait till start pulse goes high for common start point for both the controllers
 
-attachInterrupt(digitalPinToInterrupt(datainterrupt), dataISR, CHANGE);
-TIMSK1 |= (1 << TOIE1);
+attachInterrupt(digitalPinToInterrupt(datainterrupt), dataISR, CHANGE); // enable external interrupt
+
+TIMSK1 |= (1 << TOIE1); //enable timer interrupt
 TCNT1 = 65536- 6400 ; 
-interrupts();
+interrupts(); // enable all interrupts
+
 }
 
 
 void dataISR(){
   if(rising){
-  datasend=true;
-  
+  datasend=true;               // send data if rising edge detected on datainterrupt pin
   rising=false;
 }
 else{rising=true;}
  changes=changes+1;
-  if(changes==20){TCNT1=65536-6400;
+  if(changes==20){TCNT1=65536-6400;    // sync after 10 cycles of square wave at datainterrupt pin
   synced=true;
   changes=0;}
 }
 
 
-
-ISR(TIMER1_OVF_vect)        // interrupt service routine that wraps a user defined function supplied by attachInterrupt
+ISR(TIMER1_OVF_vect)        // interrupt for sampling 
 {//interrupts();
   TCNT1 = 65536-6400;  
   interrupts(); 
-  if(synced){Stampedsamples[next]=38;
+  if(synced){Stampedsamples[next]=38; // marker to indicate first sample just after synchronization
             synced=false;
             next=next+1;
             Stampedsamples[next]=38;
@@ -528,7 +521,8 @@ ISR(TIMER1_OVF_vect)        // interrupt service routine that wraps a user defin
 
 void loop()
 { 
- if(datasend){Serial.begin(230400);
+ if(datasend){                    //send acquired data 
+   Serial.begin(230400); 
  Serial.write("s2");
  dum=next;
  next=0;
