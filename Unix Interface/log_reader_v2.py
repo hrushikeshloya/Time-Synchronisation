@@ -26,7 +26,7 @@ cutoff = 25.0  # desired cutoff frequency of the filter, Hz
 b, a = butter_lowpass(cutoff, fs, order)
 
 
-f = open('mode1-ex7')
+f = open('mode1-ex8')  ### change this according to your log file name
 # f_arr = f.read().split('\n')[9:-21]
 # f_arr = f.read().split('\n')[20:-21] ##for ex4 
 # f_arr = f.read().split('\n')[22:-21]  ##for ex5
