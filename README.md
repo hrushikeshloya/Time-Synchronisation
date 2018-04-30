@@ -47,10 +47,13 @@ You can then use log_reader_v1.py and log_reader_v2.py to plot the data aquired 
 
 ### Results
 
-You can have a view of all the amazing results we have obtained in the Results folder
+You can have a view of few of the amazing results (with their log files) we have obtained in the Results folder
+
+![alt text](Results/example1.png)
 
 
 Link to our complete report: https://docs.google.com/document/d/1JRsnFTGfe37P0LFT0vE4qM5fWR5oT6ynj_dwdIWIZMQ/edit?usp=sharing
+
 Link to the final presenentation: https://docs.google.com/presentation/d/1-vB_suMupCKIn_ZJjNBb9ri4n2t6BEERArDRMrE7F0k/edit?usp=sharing
 
 Refrences: 
